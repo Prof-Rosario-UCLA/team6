@@ -4,4 +4,4 @@ metadata:
   name: your-appname-certificate
 spec:
   domains:
-    - us-west1
+    - my-game-frontend.cs144.org
