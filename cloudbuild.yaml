@@ -1,18 +1,18 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '<REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/<IMAGE>:<TAG>', '.']
+    args: ['build', '-t', 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:team6-tag', '.']
 
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', '<REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/<IMAGE>:<TAG>']
+    args: ['push', 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:team6-tag']
 
   - name: 'gcr.io/cloud-builders/kubectl'
     env:
-      - 'CLOUDSDK_COMPUTE_REGION=<REGION>'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=<CLUSTER_NAME>'
+      - 'CLOUDSDK_COMPUTE_REGION=us-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=team6-cluster'
     args: ['apply', '-f', 'k8s/']
 
 images:
-  - '<REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/<IMAGE>:<TAG>'
+  - 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:team6-tag'
 
 options:
   logging: CLOUD_LOGGING_ONLY
