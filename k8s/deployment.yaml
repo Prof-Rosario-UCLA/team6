@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: your-appname
+spec:
+  replicas: 2   # pods
+  selector:
+    matchLabels:
+      app: your-appname
+  template:
+    metadata:
+      labels:
+        app: your-appname
+    spec:
+      containers:
+      - name: your-appanem
+        image: 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:team6-tag'
+        ports:
+        - containerPort: 5173

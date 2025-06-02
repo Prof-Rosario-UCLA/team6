@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "deploy": "vite --host",
     "build": "vite build",
     "serve": "vite preview"
   },

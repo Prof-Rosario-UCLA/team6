@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: your-appname-service # Renamed for consistency with Deployment
+spec:
+  selector:
+    app: your-appname
+  ports:
+    - protocol: TCP
+      port: 80 # Service port
+      targetPort: 5173 # Container port
+  type: ClusterIP # Essential for Ingress backends

@@ -1,0 +1,7 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: your-appname-certificate
+spec:
+  domains:
+    - my-game-frontend.cs144.org
