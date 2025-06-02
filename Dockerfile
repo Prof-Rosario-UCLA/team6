@@ -1,8 +1,7 @@
 FROM node:18-alpine
 WORKDIR /app
-COPY package*.json ./
-RUN npm run dist
-COPY . .
+COPY my-game-frontend/package*.json ./
+COPY my-game-frontend/ .
 RUN npm install
-EXPOSE 1919
-CMD ["node", "app.js"]
+EXPOSE 5173
+RUN npm run dist
