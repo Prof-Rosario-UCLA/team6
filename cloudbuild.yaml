@@ -13,3 +13,6 @@ steps:
 
 images:
   - '<REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/<IMAGE>:<TAG>'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
