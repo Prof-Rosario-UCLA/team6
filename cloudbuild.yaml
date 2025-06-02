@@ -1,0 +1,15 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '<REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/<IMAGE>:<TAG>', '.']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '<REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/<IMAGE>:<TAG>']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=<REGION>'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=<CLUSTER_NAME>'
+    args: ['apply', '-f', 'k8s/']
+
+images:
+  - '<REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/<IMAGE>:<TAG>'
