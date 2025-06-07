@@ -2,13 +2,12 @@ import { NavLink } from 'react-router-dom'
 
 export default function Navbar() {
   const links = [
-    { to: '/', label: 'Lobby' },
-    { to: '/prompt', label: 'Prompts' },
-    { to: '/drawing', label: 'Drawing' },
-    { to: '/voting', label: 'Voting' },
-    { to: '/results', label: 'Results' },
+    { to: '/',        label: 'Lobby'    },
+    { to: '/prompt',  label: 'Prompts'  },
+    { to: '/drawing', label: 'Drawing'  },
+    { to: '/voting',  label: 'Voting'   },
+    { to: '/results', label: 'Results'  },
   ]
-
   return (
     <nav className="bg-white shadow">
       <ul className="flex space-x-4 p-4">

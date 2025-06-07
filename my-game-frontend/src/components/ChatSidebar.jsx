@@ -6,13 +6,18 @@ export default function ChatSidebar({ socket, roomId, username }) {
 
   useEffect(() => {
     if (!socket) return
-    socket.on('chat', msg => setMsgs(m => [...m, msg]))
+    // pick up incoming chat messages
+    socket.on('chatMessage', ({ username: from, message }) => {
+      setMsgs(m => [...m, { from, message }])
+    })
+    return () => {
+      socket.off('chatMessage')
+    }
   }, [socket])
 
   const send = () => {
     if (!input.trim()) return
-    const msg = { roomId, from: username, text: input.trim() }
-    socket.emit('chat', msg)
+    socket.emit('chatMessage', { roomId, message: input.trim() })
     setInput('')
   }
 
@@ -22,7 +27,7 @@ export default function ChatSidebar({ socket, roomId, username }) {
       <div className="flex-grow overflow-y-auto mb-2">
         {msgs.map((m,i) => (
           <div key={i} className="mb-1">
-            <strong>{m.from}:</strong> {m.text}
+            <strong>{m.from}:</strong> {m.message}
           </div>
         ))}
       </div>
@@ -31,7 +36,7 @@ export default function ChatSidebar({ socket, roomId, username }) {
           className="flex-grow border p-2"
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key==='Enter' && send()}
+          onKeyDown={e => e.key === 'Enter' && send()}
         />
         <button onClick={send} className="ml-2 bg-blue-600 text-white px-4 rounded">
           Send
@@ -40,4 +45,3 @@ export default function ChatSidebar({ socket, roomId, username }) {
     </aside>
   )
 }
-

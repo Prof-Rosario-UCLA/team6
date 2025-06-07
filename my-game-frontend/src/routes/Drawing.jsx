@@ -1,43 +1,48 @@
-import CanvasTool from '../components/CanvasTool'
+import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import CanvasTool from '../components/CanvasTool'
 import ChatSidebar from '../components/ChatSidebar'
+import { SOCKET_SERVER_URL } from '../index.jsx'
 import { io } from 'socket.io-client'
-import { useEffect, useState } from 'react'
 
 export default function Drawing() {
-  const nav = useNavigate()
-  const { roomId, username } = useLocation().state
-  const socket = io('http://localhost:1919')
-  const [prompt, setPrompt] = useState('')
+  const nav       = useNavigate()
+  const { roomId, username, prompt, duration } = useLocation().state
+  const [sock, setSock]   = useState(null)
+  const timerRef = useRef(null)
+  const [timeLeft, setTimeLeft] = useState(duration)
 
   useEffect(() => {
-    socket.on('newPrompt', ({ prompt }) => setPrompt(prompt))
-  }, [])
+    const s = io(SOCKET_SERVER_URL)
+    setSock(s)
+    s.emit('joinRoom', { roomId, username })
 
-  const finish = () => {
-    socket.emit('drawingDone', { roomId, username })
-    nav('/voting', { state: { roomId, username } })
-  }
+    // countdown
+    timerRef.current = setInterval(() => {
+      setTimeLeft(t => t - 1)
+    }, 1000)
+
+    // server ends drawing
+    s.on('drawingEnded', () => {
+      clearInterval(timerRef.current)
+      nav('/voting', { state: { roomId, username } })
+    })
+
+    return () => {
+      clearInterval(timerRef.current)
+      s.disconnect()
+    }
+  }, [roomId, username, nav])
 
   return (
     <div className="flex">
       <section className="w-2/3 mx-auto">
-        <h2 className="text-xl italic mb-2">Prompt:</h2>
-        <p className="mb-4">{prompt}</p>
+        <h2 className="text-xl italic mb-2">Prompt: {prompt}</h2>
+        <p className="mb-4">Time left: {timeLeft}s</p>
         <CanvasTool roomId={roomId} username={username} />
-        <button
-          onClick={finish}
-          className="mt-4 bg-green-600 text-white py-2 px-4 rounded"
-        >
-          Done Drawing
-        </button>
       </section>
 
-      <ChatSidebar
-        socket={socket}
-        roomId={roomId}
-        username={username}
-      />
+      <ChatSidebar socket={sock} roomId={roomId} username={username} />
     </div>
   )
 }
