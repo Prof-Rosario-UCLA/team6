@@ -8,38 +8,53 @@ import ChatSidebar from '../components/ChatSidebar'
 export default function Lobby() {
   const nav = useNavigate()
 
-  const [username, setUsername] = useState('')
-  const [roomCode, setRoomCode] = useState('')
+  // 1) Load from localStorage so refresh doesn’t clear you out
+  const [username, setUsername] = useState(
+    () => localStorage.getItem('username') || ''
+  )
+  const [roomCode, setRoomCode] = useState(
+    () => localStorage.getItem('roomCode') || ''
+  )
   const [participants, setParticipants] = useState([])
-  const socketRef = useRef(null)
 
-  // Whenever we have both username + roomCode, connect to socket
+  // 2) Persist back any time they change
+  useEffect(() => {
+    localStorage.setItem('username', username)
+  }, [username])
+  useEffect(() => {
+    localStorage.setItem('roomCode', roomCode)
+  }, [roomCode])
+
+  // 3) Once we have both, spin up Socket.io & fetch the live list
+  const socketRef = useRef(null)
   useEffect(() => {
     if (!username || !roomCode) return
 
-    const socket = io(SOCKET_SERVER_URL)
-    socketRef.current = socket
+    const sock = io(SOCKET_SERVER_URL)
+    socketRef.current = sock
 
-    socket.emit('joinRoom', { roomId: roomCode, username })
+    sock.emit('joinRoom', { roomId: roomCode, username })
 
-    socket.on('playerList', ({ players }) => {
+    // server will reply with the full list here
+    sock.on('playerList', ({ players }) => {
       setParticipants(players)
     })
 
-    return () => socket.disconnect()
+    // Cleanup on unmount
+    return () => sock.disconnect()
   }, [username, roomCode])
 
-  // Generate a new room code
+  // Generate a brand-new code
   const handleCreate = () => {
     if (!username.trim()) return
-    const code = Math.random().toString(36).substr(2, 5).toUpperCase()
-    setRoomCode(code)
+    setRoomCode(Math.random().toString(36).substr(2, 5).toUpperCase())
   }
-
-  // Navigate into the flow as a joining player
+  // Navigate forward into the prompt step
   const handleJoin = () => {
     if (!username.trim() || !roomCode.trim()) return
-    nav('/prompt', { state: { roomId: roomCode, username, isHost: false } })
+    nav('/prompt', {
+      state: { roomId: roomCode, username, isHost: false }
+    })
   }
 
   return (
@@ -47,7 +62,6 @@ export default function Lobby() {
       <section className="w-2/3 max-w-md mx-auto">
         <h1 className="text-2xl font-bold mb-4">Lobby</h1>
 
-        {/* Username always required */}
         <label className="block mb-2">Username</label>
         <input
           value={username}
@@ -56,7 +70,6 @@ export default function Lobby() {
           placeholder="Your name"
         />
 
-        {/* Room code input */}
         <label className="block mb-2">Room Code</label>
         <input
           value={roomCode}
@@ -65,7 +78,6 @@ export default function Lobby() {
           placeholder="ABCDE (or leave blank to create)"
         />
 
-        {/* Action buttons */}
         <div className="flex space-x-2 mb-6">
           <button
             onClick={handleCreate}
@@ -81,12 +93,13 @@ export default function Lobby() {
           </button>
         </div>
 
-        {/* Show participants once joined */}
         {participants.length > 0 && (
           <div>
             <h2 className="font-semibold mb-2">Participants:</h2>
             <ul className="list-disc pl-5">
-              {participants.map(p => <li key={p}>{p}</li>)}
+              {participants.map(p => (
+                <li key={p}>{p}</li>
+              ))}
             </ul>
           </div>
         )}
