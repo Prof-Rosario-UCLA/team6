@@ -1,28 +1,34 @@
-const leaderboard = [
-  /* TODO: fetch leaderboard data, e.g. { name, score } */
-]
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { io } from 'socket.io-client'
 
 export default function Results() {
+  const nav = useNavigate()
+  const { roomId } = useLocation().state
+  const socket = io('http://localhost:1919')
+  const [leaderboard, setLeaderboard] = useState([])
+
+  useEffect(() => {
+    socket.emit('getResults', { roomId })
+    socket.on('results', data => setLeaderboard(data))
+  }, [])
+
   return (
-    <section aria-labelledby="results-title">
-      <h1 id="results-title" className="text-2xl font-bold mb-4">Results</h1>
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr>
-            <th className="border p-2">Player</th>
-            <th className="border p-2">Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          {leaderboard.map((p, i) => (
-            <tr key={i}>
-              <td className="border p-2">{p.name}</td>
-              <td className="border p-2">{p.score}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <section className="max-w-md mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Results</h1>
+      <ol className="list-decimal pl-5 mb-4">
+        {leaderboard.map((p,i) => (
+          <li key={p.username} className="mb-1">
+            {p.username}: {p.votes}
+          </li>
+        ))}
+      </ol>
+      <button
+        onClick={() => nav('/')}
+        className="bg-blue-600 text-white py-2 px-4 rounded"
+      >
+        Back to Lobby
+      </button>
     </section>
   )
 }
-

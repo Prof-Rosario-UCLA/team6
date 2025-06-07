@@ -1,39 +1,43 @@
-// src/routes/Drawing.jsx
 import CanvasTool from '../components/CanvasTool'
 import { useNavigate, useLocation } from 'react-router-dom'
+import ChatSidebar from '../components/ChatSidebar'
+import { io } from 'socket.io-client'
+import { useEffect, useState } from 'react'
 
 export default function Drawing() {
   const nav = useNavigate()
-  const location = useLocation()
-  const { roomId, username } = location.state || {}
+  const { roomId, username } = useLocation().state
+  const socket = io('http://localhost:1919')
+  const [prompt, setPrompt] = useState('')
 
-  const handleNext = () => {
-    // In a real app, you might POST the final drawing to REST first.
-    // Here we simply navigate to Voting, carrying roomId & username forward.
+  useEffect(() => {
+    socket.on('newPrompt', ({ prompt }) => setPrompt(prompt))
+  }, [])
+
+  const finish = () => {
+    socket.emit('drawingDone', { roomId, username })
     nav('/voting', { state: { roomId, username } })
   }
 
-  if (!roomId || !username) {
-    return (
-      <section className="p-4">
-        <p className="text-red-600">Error: Missing room or username. Go back to Lobby.</p>
-      </section>
-    )
-  }
-
   return (
-    <section aria-labelledby="drawing-title">
-      <h1 id="drawing-title" className="text-2xl font-bold mb-4">Drawing (Room: {roomId})</h1>
+    <div className="flex">
+      <section className="w-2/3 mx-auto">
+        <h2 className="text-xl italic mb-2">Prompt:</h2>
+        <p className="mb-4">{prompt}</p>
+        <CanvasTool roomId={roomId} username={username} />
+        <button
+          onClick={finish}
+          className="mt-4 bg-green-600 text-white py-2 px-4 rounded"
+        >
+          Done Drawing
+        </button>
+      </section>
 
-      {/* CanvasTool handles all real-time drawing */}
-      <CanvasTool roomId={roomId} username={username} />
-
-      <button
-        onClick={handleNext}
-        className="mt-4 bg-green-600 text-white py-2 px-4 rounded"
-      >
-        Next: Submit Drawing
-      </button>
-    </section>
+      <ChatSidebar
+        socket={socket}
+        roomId={roomId}
+        username={username}
+      />
+    </div>
   )
 }

@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 export default function Navbar() {
   const links = [
     { to: '/', label: 'Lobby' },
+    { to: '/prompt', label: 'Prompts' },
     { to: '/drawing', label: 'Drawing' },
     { to: '/voting', label: 'Voting' },
     { to: '/results', label: 'Results' },
@@ -29,4 +30,3 @@ export default function Navbar() {
     </nav>
   )
 }
-

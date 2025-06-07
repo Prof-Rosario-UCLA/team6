@@ -1,49 +1,97 @@
-// src/routes/Lobby.jsx
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { io } from 'socket.io-client'
+import ChatSidebar from '../components/ChatSidebar'
 
 export default function Lobby() {
-  const [room, setRoom] = useState('')
-  const [username, setUsername] = useState('')
   const nav = useNavigate()
+  const location = useLocation()
+  const { username: incomingName, isHost: incomingHost } = location.state || {}
+  const [username, setUsername] = useState(incomingName || '')
+  const [room, setRoom] = useState('')
+  const [isHost, setIsHost] = useState(incomingHost || false)
+  const [participants, setParticipants] = useState([])
+  const socketRef = useRef(null)
 
+  // Connect socket when both username+room exist
+  useEffect(() => {
+    if (!username || !room) return
+    socketRef.current = io('http://localhost:1919')
+    socketRef.current.emit('joinRoom', { roomId: room, username })
+    socketRef.current.on('roomData', ({ participants }) => {
+      setParticipants(participants)
+    })
+    return () => socketRef.current.disconnect()
+  }, [username, room])
+
+  const create = () => {
+    if (!username.trim()) return
+    const code = Math.random().toString(36).substr(2,5)
+    setRoom(code)
+    setIsHost(true)
+  }
   const join = () => {
-    if (!room.trim() || !username.trim()) return
-    // Navigate to Drawing, passing roomId & username in state
-    nav('/drawing', { state: { roomId: room.trim(), username: username.trim() } })
+    if (!username.trim() || !room.trim()) return
+    nav('/prompt', { state: { roomId: room, username, isHost } })
   }
 
   return (
-    <section aria-labelledby="lobby-title" className="max-w-md mx-auto">
-      <h1 id="lobby-title" className="text-2xl font-bold mb-4">Lobby</h1>
+    <div className="flex">
+      <section className="w-2/3 max-w-md mx-auto">
+        <h1 className="text-2xl font-bold mb-4">Lobby</h1>
 
-      <label htmlFor="username-input" className="block mb-2">Username</label>
-      <input
-        id="username-input"
-        type="text"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        className="w-full border p-2 mb-4"
-        placeholder="e.g. Alice"
+        {!username || !room ? (
+          <>
+            <label className="block mb-2">Username</label>
+            <input
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              className="w-full border p-2 mb-4"
+            />
+          </>
+        ) : null}
+
+        {!room ? (
+          <button
+            onClick={create}
+            className="w-full bg-green-600 text-white py-2 rounded mb-2"
+          >
+            Create Room
+          </button>
+        ) : null}
+
+        {room && !location.state ? (
+          <>
+            <p className="mb-2">Room Code: <strong>{room}</strong></p>
+            <button
+              onClick={() => setRoom('')}
+              className="underline text-sm mb-4"
+            >Change</button>
+          </>
+        ) : null}
+
+        {room && (
+          <button
+            onClick={join}
+            className="w-full bg-blue-600 text-white py-2 rounded"
+          >
+            {isHost ? 'Enter & Add Prompts' : 'Join Room'}
+          </button>
+        )}
+
+        <div className="mt-6">
+          <h2 className="font-semibold mb-2">Participants:</h2>
+          <ul className="list-disc pl-5">
+            {participants.map(p => <li key={p}>{p}</li>)}
+          </ul>
+        </div>
+      </section>
+
+      <ChatSidebar
+        socket={socketRef.current}
+        roomId={room}
+        username={username}
       />
-
-      <label htmlFor="room-input" className="block mb-2">Room Code</label>
-      <input
-        id="room-input"
-        type="text"
-        value={room}
-        onChange={(e) => setRoom(e.target.value)}
-        className="w-full border p-2 mb-4"
-        placeholder="e.g. abc123"
-      />
-
-      <button
-        onClick={join}
-        className="w-full bg-blue-600 text-white py-2 rounded disabled:opacity-50"
-        disabled={!room.trim() || !username.trim()}
-      >
-        Join
-      </button>
-    </section>
+    </div>
   )
 }
