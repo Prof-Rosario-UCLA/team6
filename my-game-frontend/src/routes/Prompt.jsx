@@ -1,9 +1,7 @@
-// src/routes/Prompt.jsx
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import ChatSidebar from '../components/ChatSidebar'
-import { SOCKET_SERVER_URL } from '../index.jsx'
 
 export default function Prompt() {
   const navigate = useNavigate()
@@ -12,40 +10,58 @@ export default function Prompt() {
   const [prompts, setPrompts] = useState([])
   const [text, setText] = useState('')
 
-  // If no state, kick back to lobby
+  // Redirect back to lobby if someone lands here without state
   useEffect(() => {
-    if (!roomId || !username) {
-      navigate('/', { replace: true })
-    }
+    if (!roomId || !username) navigate('/', { replace: true })
   }, [roomId, username, navigate])
 
+  // On mount, connect socket and join the room
   useEffect(() => {
     if (!roomId || !username) return
-    const s = io(SOCKET_SERVER_URL)
+    const s = io('http://localhost:1919')
     setSocket(s)
-
     s.emit('joinRoom', { roomId, username })
-    // Fetch any existing prompts
-    s.emit('getPrompts', { roomId })
-    s.on('promptList', ({ prompts: list }) => setPrompts(list))
 
-    // When host calls startGame, backend emits gameStarted
+    // When the host actually starts, server emits 'gameStarted'
     s.on('gameStarted', ({ prompt, duration }) => {
-      navigate('/drawing', {
-        state: { roomId, username, prompt, duration },
-      })
+      navigate('/drawing', { state: { roomId, username, prompt, duration } })
     })
+
+    // If you want to see errors (e.g. trying to start with no prompts)
+    s.on('error', ({ message }) => alert(message))
 
     return () => s.disconnect()
   }, [roomId, username, navigate])
 
-  const addPrompt = () => {
+  // New: POST to backend instead of socket.emit('addPrompt')
+  const addPrompt = async () => {
     if (!text.trim()) return
-    socket.emit('addPrompt', { roomId, prompt: text.trim() })
-    setPrompts(ps => [...ps, text.trim()])
-    setText('')
+    try {
+      const res = await fetch('/api/lobby/prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId,
+          username,
+          prompts: text.trim()
+        })
+      })
+      if (!res.ok) {
+        const { error } = await res.json()
+        return alert(error)
+      }
+      setPrompts(ps => [...ps, text.trim()])
+      setText('')
+    } catch (err) {
+      console.error(err)
+      alert('Could not add prompt')
+    }
   }
-  const startGame = () => socket.emit('startGame', { roomId })
+
+  // Emit the real "startGame" (server will pick a random prompt)
+  const startGame = () => {
+    socket.emit('startGame', { roomId })
+  }
 
   return (
     <div className="flex">
