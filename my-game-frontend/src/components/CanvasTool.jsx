@@ -1,6 +1,6 @@
-// src/components/CanvasTool.jsx
 import React, { useRef, useEffect, useState } from 'react'
 import { io } from 'socket.io-client'
+import { SOCKET_SERVER_URL } from '../index.jsx'
 
 export default function CanvasTool({ roomId, username }) {
   const canvasRef = useRef(null)
@@ -10,7 +10,7 @@ export default function CanvasTool({ roomId, username }) {
   const lastPosRef = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
-    // 1) Initialize the canvas
+    // 1) init canvas
     const canvas = canvasRef.current
     canvas.width = 800
     canvas.height = 600
@@ -20,42 +20,39 @@ export default function CanvasTool({ roomId, username }) {
     context.lineWidth = 2
     setCtx(context)
 
-    // 2) Connect to Socket.io server
-    socketRef.current = io('http://localhost:1919', {
-      transports: ['websocket'], // optional: force WebSocket
-    })
-
-    // 3) Join the room with username
+    // 2) socket connect & join
+    socketRef.current = io(SOCKET_SERVER_URL)
     socketRef.current.emit('joinRoom', { roomId, username })
 
-    // 4) Listen for others’ drawing events
-    socketRef.current.on('drawing', (stroke) => {
-      // When another client emits ▸ socket.to(roomId).emit('drawing', stroke)
-      // we receive stroke here and draw it
-      drawStroke(context, stroke, false)
+    // 3) incoming strokes
+    socketRef.current.on('drawing', ({ username: from, stroke }) => {
+      // optionally color by user...
+      context.beginPath()
+      context.moveTo(stroke.x0, stroke.y0)
+      context.lineTo(stroke.x1, stroke.y1)
+      context.stroke()
+      context.closePath()
     })
 
-    // Cleanup on unmount
     return () => {
       socketRef.current.disconnect()
     }
   }, [roomId, username])
 
-  // Helper to actually draw a line segment
-  const drawStroke = (context, { x0, y0, x1, y1 }, emit) => {
-    context.beginPath()
-    context.moveTo(x0, y0)
-    context.lineTo(x1, y1)
-    context.stroke()
-    context.closePath()
+  const drawSegment = (x0, y0, x1, y1) => {
+    ctx.beginPath()
+    ctx.moveTo(x0, y0)
+    ctx.lineTo(x1, y1)
+    ctx.stroke()
+    ctx.closePath()
 
-    if (!emit) return
-    // Emit to server so others see it:
-    socketRef.current.emit('drawing', { roomId, stroke: { x0, y0, x1, y1 } })
+    socketRef.current.emit('drawing', {
+      roomId,
+      stroke: { x0, y0, x1, y1 }
+    })
   }
 
-  // When user presses pointer down
-  const handlePointerDown = e => {
+  const handleDown = e => {
     drawingRef.current = true
     const rect = canvasRef.current.getBoundingClientRect()
     lastPosRef.current = {
@@ -64,46 +61,36 @@ export default function CanvasTool({ roomId, username }) {
     }
   }
 
-  // As user moves pointer, draw line segments
-  const handlePointerMove = e => {
+  const handleMove = e => {
     if (!drawingRef.current || !ctx) return
-
     const rect = canvasRef.current.getBoundingClientRect()
-    const currentPos = {
+    const curr = {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     }
-
-    // Draw locally and emit to others
-    drawStroke(ctx, {
-      x0: lastPosRef.current.x,
-      y0: lastPosRef.current.y,
-      x1: currentPos.x,
-      y1: currentPos.y,
-    }, true)
-
-    // Update last position
-    lastPosRef.current = currentPos
+    drawSegment(
+      lastPosRef.current.x,
+      lastPosRef.current.y,
+      curr.x,
+      curr.y
+    )
+    lastPosRef.current = curr
   }
 
-  // Stop drawing when pointer is lifted or leaves canvas
-  const handlePointerUp = () => {
+  const handleUp = () => {
     drawingRef.current = false
   }
 
   return (
-    <div className="relative">
-      <canvas
-        ref={canvasRef}
-        className="border bg-white w-full max-w-2xl h-auto touch-none"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        role="application"
-        aria-label="Drawing canvas"
-      />
-      {/* You can add a toolbar here (flood-fill, undo/redo) if needed */}
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="border bg-white w-full h-auto touch-none"
+      onPointerDown={handleDown}
+      onPointerMove={handleMove}
+      onPointerUp={handleUp}
+      onPointerLeave={handleUp}
+      role="application"
+      aria-label="Drawing canvas"
+    />
   )
 }

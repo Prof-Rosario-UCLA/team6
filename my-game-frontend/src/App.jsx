@@ -12,11 +12,11 @@ export default function App() {
       <Navbar />
       <main className="flex-grow p-4">
         <Routes>
-          <Route path="/" element={<Lobby />} />
-          <Route path="/prompt" element={<Prompt />} />
-          <Route path="/drawing" element={<Drawing />} />
-          <Route path="/voting" element={<Voting />} />
-          <Route path="/results" element={<Results />} />
+          <Route path="/"           element={<Lobby />} />
+          <Route path="/prompt"     element={<Prompt />} />
+          <Route path="/drawing"    element={<Drawing />} />
+          <Route path="/voting"     element={<Voting />} />
+          <Route path="/results"    element={<Results />} />
         </Routes>
       </main>
     </div>

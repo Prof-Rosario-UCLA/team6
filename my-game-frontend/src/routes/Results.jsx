@@ -1,34 +1,53 @@
-import { useLocation, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import { io } from 'socket.io-client'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import ChatSidebar from '../components/ChatSidebar'
+import { SOCKET_SERVER_URL } from '../index.jsx'
 
 export default function Results() {
   const nav = useNavigate()
   const { roomId } = useLocation().state
-  const socket = io('http://localhost:1919')
-  const [leaderboard, setLeaderboard] = useState([])
+  const [results, setResults] = useState([])
+  const [sock, setSock] = useState(null)
 
   useEffect(() => {
-    socket.emit('getResults', { roomId })
-    socket.on('results', data => setLeaderboard(data))
-  }, [])
+    const s = io(SOCKET_SERVER_URL)
+    setSock(s)
+    s.emit('joinRoom', { roomId })
+
+    // either listen for final tally:
+    s.on('votingEnded', ({ tally }) => {
+      const arr = Object.entries(tally).sort((a,b) => b[1]-a[1])
+      setResults(arr.map(([user,v]) => ({ user, votes: v })))
+    })
+
+    // …or fetch via REST:
+    fetch(`${SOCKET_SERVER_URL}/api/results/${roomId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.winners) setResults(data.winners)
+      })
+  }, [roomId])
 
   return (
-    <section className="max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Results</h1>
-      <ol className="list-decimal pl-5 mb-4">
-        {leaderboard.map((p,i) => (
-          <li key={p.username} className="mb-1">
-            {p.username}: {p.votes}
-          </li>
-        ))}
-      </ol>
-      <button
-        onClick={() => nav('/')}
-        className="bg-blue-600 text-white py-2 px-4 rounded"
-      >
-        Back to Lobby
-      </button>
-    </section>
-  )
+    <div className="flex">
+      <section className="w-2/3 mx-auto">
+        <h1 className="text-2xl font-bold mb-4">Results</h1>
+        <ol className="list-decimal pl-5 mb-4">
+          {results.map(r => (
+            <li key={r.user} className="mb-1">
+              {r.user}: {r.votes}
+            </li>
+          ))}
+        </ol>
+        <button
+          onClick={() => nav('/')}
+          className="bg-blue-600 text-white py-2 px-4 rounded"
+        >
+          Back to Lobby
+        </button>
+      </section>
+
+      <ChatSidebar socket={sock} roomId={roomId} username={null} />
+    </div>
+)
 }

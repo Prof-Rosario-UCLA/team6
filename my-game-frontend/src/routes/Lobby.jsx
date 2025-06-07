@@ -1,43 +1,44 @@
-// src/routes/Lobby.jsx
 import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import ChatSidebar from '../components/ChatSidebar'
+import { SOCKET_SERVER_URL } from '../index.jsx'
 
 export default function Lobby() {
   const nav = useNavigate()
-  const location = useLocation()
-  const { username: incomingName, isHost: incomingHost } = location.state || {}
-  const [username, setUsername] = useState(incomingName || '')
-  const [room, setRoom] = useState('')
-  const [isHost, setIsHost] = useState(incomingHost || false)
+  const [username,   setUsername]   = useState('')
+  const [roomId,     setRoomId]     = useState('')
   const [participants, setParticipants] = useState([])
+  const [host,       setHost]       = useState(null)
   const socketRef = useRef(null)
 
+  // when roomId + username set → connect
   useEffect(() => {
-    if (!username || !room) return
+    if (!roomId || !username) return
 
-    socketRef.current = io('http://localhost:1919')
-    socketRef.current.emit('joinRoom', { roomId: room, username })
-    socketRef.current.on('roomData', ({ participants }) => {
-      setParticipants(participants)
+    const sock = io(SOCKET_SERVER_URL)
+    socketRef.current = sock
+    sock.emit('joinRoom', { roomId, username })
+
+    sock.on('playerList', ({ players, host }) => {
+      setParticipants(players)
+      setHost(host)
     })
+    sock.on('userJoined',   ({ username }) => setParticipants(p => [...p, username]))
+    sock.on('userLeft',     ({ username }) => setParticipants(p => p.filter(x => x !== username)))
+    sock.on('roomClosed',   () => nav('/'))  // kick back
 
-    return () => {
-      socketRef.current.disconnect()
-    }
-  }, [username, room])
+    return () => sock.disconnect()
+  }, [roomId, username, nav])
 
-  const create = () => {
-    if (!username.trim()) return
-    const code = Math.random().toString(36).substr(2, 5)
-    setRoom(code)
-    setIsHost(true)
+  const handleCreate = () => {
+    const code = Math.random().toString(36).slice(2, 7)
+    setRoomId(code)
   }
 
-  const join = () => {
-    if (!username.trim() || !room.trim()) return
-    nav('/prompt', { state: { roomId: room, username, isHost } })
+  const handleJoin = () => {
+    if (!roomId || !username) return
+    nav('/prompt', { state: { roomId, username, isHost: username === host } })
   }
 
   return (
@@ -45,40 +46,34 @@ export default function Lobby() {
       <section className="w-2/3 max-w-md mx-auto">
         <h1 className="text-2xl font-bold mb-4">Lobby</h1>
 
-        {!username && (
-          <>
-            <label className="block mb-2">Username</label>
-            <input
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              className="w-full border p-2 mb-4"
-            />
-          </>
-        )}
+        <label className="block mb-2">Username</label>
+        <input
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          className="w-full border p-2 mb-4"
+        />
 
-        {!room ? (
+        { !roomId ? (
           <button
-            onClick={create}
-            className="w-full bg-green-600 text-white py-2 rounded mb-4"
+            onClick={handleCreate}
+            className="w-full bg-green-600 text-white py-2 mb-4 rounded"
           >
             Create Room
           </button>
         ) : (
           <>
-            <p className="mb-2">
-              Room Code: <strong>{room}</strong>
-            </p>
+            <p className="mb-2">Room Code: <strong>{roomId}</strong></p>
             <button
-              onClick={() => setRoom('')}
+              onClick={() => setRoomId('')}
               className="underline text-sm mb-4"
             >
-              Change Code
+              Change
             </button>
             <button
-              onClick={join}
+              onClick={handleJoin}
               className="w-full bg-blue-600 text-white py-2 rounded"
             >
-              {isHost ? 'Enter & Add Prompts' : 'Join Room'}
+              {username === host ? 'You’re Host – Add Prompts' : 'Join Room'}
             </button>
           </>
         )}
@@ -86,16 +81,14 @@ export default function Lobby() {
         <div className="mt-6">
           <h2 className="font-semibold mb-2">Participants:</h2>
           <ul className="list-disc pl-5">
-            {participants.map(p => (
-              <li key={p}>{p}</li>
-            ))}
+            {participants.map(p => <li key={p}>{p}</li>)}
           </ul>
         </div>
       </section>
 
       <ChatSidebar
         socket={socketRef.current}
-        roomId={room}
+        roomId={roomId}
         username={username}
       />
     </div>
