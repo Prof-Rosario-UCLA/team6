@@ -11,6 +11,7 @@ router.get('/history/:roomId', (req, res) => {
     return res.status(400).json({ error: 'Room not found' });
   }
 
+  // TODO: getHistory fucntion in gameState
   res.json({ history: room.history });
 });
 
