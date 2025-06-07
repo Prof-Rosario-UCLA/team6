@@ -1,3 +1,11 @@
+
+// TODO:
+// DB and caching code, right now everything is stored locally
+// LATER, rename file from gameState.js to service.js, since
+// it is doing more than just game logic
+
+
+
 const rooms = new Map();
 
 function createRoom(roomId, hostName) {
