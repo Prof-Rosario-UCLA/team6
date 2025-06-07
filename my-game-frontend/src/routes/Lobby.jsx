@@ -2,59 +2,63 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { io } from 'socket.io-client'
-import { SOCKET_SERVER_URL } from '../index.jsx'
 import ChatSidebar from '../components/ChatSidebar'
+import { SOCKET_SERVER_URL } from '../index.jsx'
 
 export default function Lobby() {
   const nav = useNavigate()
 
-  // 1) Load from localStorage so refresh doesn’t clear you out
+  // Per-tab storage so tabs don’t share values
   const [username, setUsername] = useState(
-    () => localStorage.getItem('username') || ''
+    () => sessionStorage.getItem('username') || ''
   )
   const [roomCode, setRoomCode] = useState(
-    () => localStorage.getItem('roomCode') || ''
+    () => sessionStorage.getItem('roomCode') || ''
   )
   const [participants, setParticipants] = useState([])
+  const [isHost, setIsHost] = useState(false)
+  const socketRef = useRef(null)
 
-  // 2) Persist back any time they change
+  // Persist per-tab
   useEffect(() => {
-    localStorage.setItem('username', username)
+    sessionStorage.setItem('username', username)
   }, [username])
   useEffect(() => {
-    localStorage.setItem('roomCode', roomCode)
+    sessionStorage.setItem('roomCode', roomCode)
   }, [roomCode])
 
-  // 3) Once we have both, spin up Socket.io & fetch the live list
-  const socketRef = useRef(null)
-  useEffect(() => {
-    if (!username || !roomCode) return
-
+  // Connect socket once both are set
+  const connectSocket = (code, user) => {
+    if (socketRef.current) socketRef.current.disconnect()
     const sock = io(SOCKET_SERVER_URL)
     socketRef.current = sock
 
-    sock.emit('joinRoom', { roomId: roomCode, username })
-
-    // server will reply with the full list here
-    sock.on('playerList', ({ players }) => {
-      setParticipants(players)
+    sock.emit('joinRoom', { roomId: code, username: user })
+    sock.on('playerList', ({ players }) => setParticipants(players))
+    sock.on('roomClosed', () => {
+      // If host leaves, backend broadcasts roomClosed → go home
+      setParticipants([])
+      setRoomCode('')
+      setIsHost(false)
     })
+  }
 
-    // Cleanup on unmount
-    return () => sock.disconnect()
-  }, [username, roomCode])
-
-  // Generate a brand-new code
+  // Host flow
   const handleCreate = () => {
     if (!username.trim()) return
-    setRoomCode(Math.random().toString(36).substr(2, 5).toUpperCase())
+    const code = Math.random().toString(36).substr(2, 5).toUpperCase()
+    setIsHost(true)
+    setRoomCode(code)
+    connectSocket(code, username)
+    nav('/prompt', { state: { roomId: code, username, isHost: true } })
   }
-  // Navigate forward into the prompt step
+
+  // Player flow
   const handleJoin = () => {
     if (!username.trim() || !roomCode.trim()) return
-    nav('/prompt', {
-      state: { roomId: roomCode, username, isHost: false }
-    })
+    setIsHost(false)
+    connectSocket(roomCode, username)
+    nav('/prompt', { state: { roomId: roomCode, username, isHost: false } })
   }
 
   return (
