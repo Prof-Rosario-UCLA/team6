@@ -24,6 +24,9 @@ export default function registerSocketHandlers(io) {
           }
             //socket.emit('error', { message: 'username already taken in this room. please choose another' });
             //return;
+            
+          }
+          else{
             gameState.addPlayer(roomId, username);
             console.log(`${username} joined room ${roomId}`);
           }
@@ -47,6 +50,7 @@ export default function registerSocketHandlers(io) {
       // ex: only host has a start game button and the can enter prompt list
       console.log(`room size: ${gameState.getPlayers(roomId).length}`);
       console.log(`host: ${gameState.getRoom(roomId)?.host}`);
+      console.log(`players: ${gameState.getPlayers(roomId)}`);
       socket.emit('playerList', {
         players: gameState.getPlayers(roomId),
         host: gameState.getRoom(roomId)?.host,
@@ -66,6 +70,8 @@ export default function registerSocketHandlers(io) {
     });
 
     socket.on('chatMessage', ({ roomId, message }) => {
+
+      console.log(`${socket.data.username} sents message:: ${message}`);
       socket.to(roomId).emit('chatMessage', {
         username: socket.data.username,
         message
