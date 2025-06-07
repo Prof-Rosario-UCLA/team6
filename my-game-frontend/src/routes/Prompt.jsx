@@ -8,31 +8,33 @@ import { SOCKET_SERVER_URL } from '../index.jsx'
 export default function Prompt() {
   const navigate = useNavigate()
   const { roomId, username, isHost } = useLocation().state || {}
-  const [text, setText] = useState('')
-  const [prompts, setPrompts] = useState([])
   const [socket, setSocket] = useState(null)
+  const [prompts, setPrompts] = useState([])
+  const [text, setText] = useState('')
 
-  // Redirect home if they somehow reach /prompt without state
+  // If no state, kick back to lobby
   useEffect(() => {
-    if (!roomId || !username) navigate('/', { replace: true })
+    if (!roomId || !username) {
+      navigate('/', { replace: true })
+    }
   }, [roomId, username, navigate])
 
   useEffect(() => {
     if (!roomId || !username) return
     const s = io(SOCKET_SERVER_URL)
     setSocket(s)
-    s.emit('joinRoom', { roomId, username })
 
-    // get the current list
+    s.emit('joinRoom', { roomId, username })
+    // Fetch any existing prompts
     s.emit('getPrompts', { roomId })
     s.on('promptList', ({ prompts: list }) => setPrompts(list))
 
-    // host kicks off game
-    s.on('gameStarted', ({ prompt, duration }) =>
+    // When host calls startGame, backend emits gameStarted
+    s.on('gameStarted', ({ prompt, duration }) => {
       navigate('/drawing', {
         state: { roomId, username, prompt, duration },
       })
-    )
+    })
 
     return () => s.disconnect()
   }, [roomId, username, navigate])
