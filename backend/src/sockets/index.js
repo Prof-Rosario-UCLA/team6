@@ -51,7 +51,17 @@ export default function registerSocketHandlers(io) {
       console.log(`room size: ${gameState.getPlayers(roomId).length}`);
       console.log(`host: ${gameState.getRoom(roomId)?.host}`);
       console.log(`players: ${gameState.getPlayers(roomId)}`);
-      
+      socket.emit('playerList', {
+        players: gameState.getPlayers(roomId),
+        host: gameState.getRoom(roomId)?.host,
+      });
+
+      /*socket.emit('playerList', {
+        players: gameState.getPlayers(roomId),
+        host: gameState.getRoom(roomId)?.host,
+      });
+      */
+
       socket.to(roomId).emit('playerList', {
         players: gameState.getPlayers(roomId),
         host: gameState.getRoom(roomId)?.host,
