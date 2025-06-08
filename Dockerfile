@@ -1,8 +1,14 @@
-FROM node:23-alpine
+FROM node:23-alpine as build
 WORKDIR /app
-COPY my-game-frontend/package*.json ./
-COPY my-game-frontend/ .
+COPY frontend/package*.json ./
+COPY frontend/ .
 RUN npm install
-EXPOSE 5173
-# RUN npm run build
-CMD ["npm", "run", "deploy"]
+RUN npm run build
+# CMD ["npm", "run", "serve"]
+
+FROM ubuntu
+RUN apt-get update
+RUN apt-get install nginx -y
+COPY --from=build /app/dist /var/www/html/
+EXPOSE 80
+CMD ["nginx","-g","daemon off;"]

@@ -1,12 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: your-appname-service # Renamed for consistency with Deployment
+  name: drawtogether-service # Renamed for consistency with Deployment
 spec:
   selector:
-    app: your-appname
+    app: drawtogether
   ports:
     - protocol: TCP
       port: 80 # Service port
-      targetPort: 5173 # Container port
+      targetPort: 80 # Container port
+      # targetPort: 1919
   type: ClusterIP # Essential for Ingress backends
