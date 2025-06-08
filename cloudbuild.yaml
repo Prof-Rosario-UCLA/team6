@@ -1,18 +1,35 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:team6-tag', '.']
+    args: ['build', '-t', 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:latest', '.']
 
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:team6-tag']
+    args: ['push', 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:latest']
 
   - name: 'gcr.io/cloud-builders/kubectl'
     env:
-      - 'CLOUDSDK_COMPUTE_REGION=us-west1'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=team6-cluster'
-    args: ['apply', '-f', 'k8s/']
+      - 'CLOUDSDK_COMPUTE_REGION=us-west1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=cs144-test'
+    args: ['apply', '-f', 'k8s/deployment.yaml']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    env:
+    - 'CLOUDSDK_COMPUTE_REGION=us-west1-a'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=cs144-test'
+    args: ['apply', '-f', 'k8s/service.yaml']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-west1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=cs144-test'
+    args: ['apply', '-f', 'k8s/frontendconfig.yaml']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-west1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=cs144-test'
+    args: ['apply', '-f', 'k8s/ingress.yaml']
 
 images:
-  - 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:team6-tag'
-
+  - 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:latest'
 options:
   logging: CLOUD_LOGGING_ONLY

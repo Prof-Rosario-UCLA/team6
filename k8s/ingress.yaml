@@ -1,25 +1,25 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: chat-app-ingress
+  name: drawtogether-ingress
   annotations:
     # Use a static IP (optional but recommended)
-    # kubernetes.io/ingress.global-static-ip-name: "your-appname-ip" # Replace with your static IP name
+    kubernetes.io/ingress.global-static-ip-name: "drawtogether" # Replace with your static IP name
     # Link your Google-managed certificate
-    # networking.gke.io/managed-certificates: "your-appname-certificate"
+    networking.gke.io/managed-certificates: "your-appname-certificate"
     # Use HTTP to validate domain ownership (GCP specific).
     kubernetes.io/ingress.class: "gce"
     # Automatic HTTP to HTTPS redirect
-    # networking.gke.io/v1.FrontendConfig: "default-redirect-config" # Once certificate is ready, uncomment and redeploy this
+    networking.gke.io/v1.FrontendConfig: "default-redirect-config" # Once certificate is ready, uncomment and redeploy this
 spec:
   rules:
-    - host: gke-demo.cs144.org    # Replace with your actual domain
+    - host: team6.cs144.org    # Replace with your actual domain
       http:
         paths:
           - path: /*
             pathType: ImplementationSpecific
             backend:
               service:
-                name: chat-app-service # Your ClusterIP Service name
+                name: drawtogether-service # Your ClusterIP Service name
                 port:
-                  number: 5173 # The port your Service listens on
+                  number: 80 # The port your Service listens on

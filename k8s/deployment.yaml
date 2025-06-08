@@ -1,19 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: your-appname
+  name: drawtogether
 spec:
   replicas: 2   # pods
   selector:
     matchLabels:
-      app: your-appname
+      app: drawtogether
   template:
     metadata:
       labels:
-        app: your-appname
+        app: drawtogether
     spec:
       containers:
-      - name: your-appanem
-        image: 'us-west1-docker.pkg.dev/${PROJECT_ID}/team6-repo/team6-image:team6-tag'
+      - name: drawtogether
+        image: 'us-west1-docker.pkg.dev/cs144-25s-team6/team6-repo/team6-image:latest'
+        # image: 'us-west1-docker.pkg.dev/cs144-25s-team6/team6-repo/team6-image:test'
+        # image: 'us-west1-docker.pkg.dev/cs144-25s-team6/team6-repo/chat:v1'
         ports:
-        - containerPort: 5173
+        - containerPort: 80
+        # - containerPort: 1919
