@@ -194,6 +194,13 @@ export default function registerSocketHandlers(io) {
         // emit that drawing phase had ended after timer runs out
         io.to(roomId).emit('drawingEnded');
 
+
+        // immediately broadcast everyone's strokes to all clients
+    io.to(roomId).emit(
+      'syncDrawings',
+      gameState.getAllDrawings(roomId)
+    );
+
         // start voting phase and timer
         gameState.setPhase(roomId, 'voting');
 
