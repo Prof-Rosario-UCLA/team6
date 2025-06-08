@@ -6,34 +6,35 @@ import Chat from './Chat'
 import Canvas from './Canvas'
 
 export default function App() {
-  const [stage,         setStage]         = useState('lobby')     // lobby → prompts → drawing → voting → results
+  const [stage,         setStage]         = useState('lobby')
   const [username,      setUsername]      = useState('')
   const [roomId,        setRoomId]        = useState('')
   const [isHost,        setIsHost]        = useState(false)
   const [players,       setPlayers]       = useState([])
-  const [prompts,       setPrompts]       = useState([])
+  const [promptText,    setPromptText]    = useState('')   // all prompts, one per line
   const [currentPrompt, setCurrentPrompt] = useState('')
   const [duration,      setDuration]      = useState(0)
   const [timeLeft,      setTimeLeft]      = useState(0)
-  const [drawings,      setDrawings]      = useState([])         // [{ username, strokes }]
+  const [liveDrawings,  setLiveDrawings]  = useState({})
+  const [drawings,      setDrawings]      = useState([])
   const [selected,      setSelected]      = useState('')
   const [tally,         setTally]         = useState({})
-  const socketRef      = useRef(null)
-  const strokesBuf     = useRef({})
+  const socketRef       = useRef(null)
+  const strokesBuf      = useRef({})
 
-  // ─── Socket.io setup ─────────────────────────────────────────────
+  // ─── Socket.io setup ────────────────────────────────────────────────────
   useEffect(() => {
     const sock = io(SOCKET_SERVER_URL)
     socketRef.current = sock
 
     sock.on('playerList', ({ players }) => setPlayers(players))
-    sock.on('promptList', ({ prompts }) => setPrompts(prompts))
 
     sock.on('gameStarted', ({ prompt, duration: d }) => {
       setCurrentPrompt(prompt)
       setDuration(d)
       setTimeLeft(d)
       strokesBuf.current = {}
+      setLiveDrawings({})
       setDrawings([])
       setStage('drawing')
     })
@@ -42,6 +43,11 @@ export default function App() {
       const buf = strokesBuf.current
       if (!buf[u]) buf[u] = []
       buf[u].push(stroke)
+      setLiveDrawings(ld => {
+        const copy = { ...ld }
+        copy[u] = [...(copy[u]||[]), stroke]
+        return copy
+      })
     })
 
     sock.on('drawingEnded', () => {
@@ -60,7 +66,7 @@ export default function App() {
     return () => sock.disconnect()
   }, [])
 
-  // ─── Countdown for drawing ───────────────────────────────────────
+  // ─── Countdown timer ─────────────────────────────────────────────────────
   useEffect(() => {
     if (stage !== 'drawing') return
     const timer = setInterval(() => {
@@ -76,10 +82,11 @@ export default function App() {
     return () => clearInterval(timer)
   }, [stage])
 
-  // ─── Lobby actions ───────────────────────────────────────────────
+  // ─── Lobby actions ───────────────────────────────────────────────────────
   const createRoom = () => {
     if (!username.trim()) return alert('Enter a username')
-    const code = roomId.trim().toUpperCase() || Math.random().toString(36).substr(2,5).toUpperCase()
+    const code = roomId.trim().toUpperCase() ||
+      Math.random().toString(36).substr(2,5).toUpperCase()
     setRoomId(code)
     setIsHost(true)
     socketRef.current.emit('joinRoom', { roomId: code, username })
@@ -92,108 +99,123 @@ export default function App() {
     setStage('prompts')
   }
 
-  // ─── Prompt actions ──────────────────────────────────────────────
-  const addPrompt = async txt => {
-    if (!txt.trim()) return
-    const res = await fetch(`${API_BASE_URL}/lobby/prompts`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ roomId, username, prompts: txt.trim() })
-    })
-    if (res.ok) {
-      setPrompts(ps => [...ps, txt.trim()])
-    } else {
-      alert((await res.json()).error)
-    }
-  }
-  const startGame = () => {
-    if (!prompts.length) return alert('Add at least one prompt')
-    socketRef.current.emit('startGame', { roomId })
-  }
+  // ─── Set Prompts & Start ─────────────────────────────────────────────────
+const setPromptsAndStart = async () => {
+  const lines = promptText
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l)
+  if (!lines.length) return alert('Enter at least one prompt')
 
-  // ─── Voting action ───────────────────────────────────────────────
+  try {
+    // <-- FIXED fetch URL here:
+    const res  = await fetch(`${API_BASE_URL}/lobby/prompts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId, username, prompts: promptText })
+    })
+    const data = await res.json()
+    if (!data.success) {
+      alert(data.error || 'Failed to set prompts')
+      return
+    }
+    socketRef.current.emit('startGame', { roomId })
+  } catch (err) {
+    alert('Network error: ' + err.message)
+  }
+}
+
+  // ─── Voting action ───────────────────────────────────────────────────────
   const castVote = () => {
     if (!selected) return
     socketRef.current.emit('vote', { roomId, votedFor: selected })
   }
 
-  // ─── Reset back to lobby ──────────────────────────────────────────
+  // ─── Reset to lobby ──────────────────────────────────────────────────────
   const resetGame = () => {
-    setStage('lobby')
-    setRoomId('');   setIsHost(false)
-    setPlayers([]);  setPrompts([])
-    setCurrentPrompt(''); setDrawings([])
-    setTally({});    setSelected(''); setTimeLeft(0)
+    setStage('lobby'); setRoomId(''); setIsHost(false)
+    setPlayers([]); setPromptText('')
+    setCurrentPrompt(''); setDrawings([]); setLiveDrawings({})
+    setTally({}); setSelected(''); setTimeLeft(0)
   }
 
   return (
     <div className="flex" style={{ height: '100%' }}>
       <section className="w-2/3 border-r p-4">
+
         {/* Lobby */}
-        {stage === 'lobby' && (
+        {stage==='lobby' && (
           <>
             <h1>Lobby</h1>
             <input
               placeholder="Username"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={e=>setUsername(e.target.value)}
             /><br/><br/>
             <input
               placeholder="Room code (or blank to create)"
               value={roomId}
-              onChange={e => setRoomId(e.target.value.toUpperCase())}
+              onChange={e=>setRoomId(e.target.value.toUpperCase())}
             /><br/><br/>
             <button onClick={createRoom}>Create Room</button>
             <button onClick={joinRoom}>Join Room</button>
             <h2>Players:</h2>
-            <ul>{players.map(u => <li key={u}>{u}</li>)}</ul>
+            <ul>{players.map(u=><li key={u}>{u}</li>)}</ul>
           </>
         )}
 
         {/* Prompts */}
-        {stage === 'prompts' && (
+        {stage==='prompts' && (
           <>
-            <h1>Enter Prompts</h1>
-            {/* Show existing prompts */}
-            {prompts.length > 0 && (
-              <ul className="mb-4 list-disc pl-5">
-                {prompts.map((p,i) => <li key={i}>{p}</li>)}
-              </ul>
-            )}
-            <PromptInput onAdd={addPrompt} />
+            <h1 className="text-2xl font-bold mb-4">Enter Prompts</h1>
+            <textarea
+              rows={6}
+              className="w-full border p-2 mb-4"
+              placeholder="One prompt per line…"
+              value={promptText}
+              onChange={e=>setPromptText(e.target.value)}
+            />
             {isHost ? (
-              <button onClick={startGame} disabled={!prompts.length}>
-                Start Game
+              <button
+                onClick={setPromptsAndStart}
+                disabled={!promptText.trim()}
+                className="bg-green-600 text-white py-2 px-4 rounded"
+              >
+                Set Prompts
               </button>
             ) : (
-              <p>Waiting for host to start…</p>
+              <p className="italic text-gray-600">Waiting for host…</p>
             )}
           </>
         )}
 
         {/* Drawing */}
-        {stage === 'drawing' && (
+        {stage==='drawing' && (
           <>
             <h1>Draw: {currentPrompt}</h1>
-            <Canvas socket={socketRef.current} roomId={roomId} />
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {players.map(u=>(
+                <div key={u}>
+                  <small>{u}</small>
+                  {u===username
+                    ? <Canvas socket={socketRef.current} roomId={roomId}/>
+                    : <Canvas strokes={liveDrawings[u]||[]} readOnly/>
+                  }
+                </div>
+              ))}
+            </div>
             <p>Time left: {timeLeft}s</p>
           </>
         )}
 
         {/* Voting */}
-        {stage === 'voting' && (
+        {stage==='voting' && (
           <>
             <h1>Voting</h1>
-            <div style={{
-              display:'grid',
-              gridTemplateColumns:'1fr 1fr',
-              gap:'1rem',
-              marginBottom:'1rem'
-            }}>
-              {drawings.map(d => (
-                <figure
-                  key={d.username}
-                  onClick={() => setSelected(d.username)}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {drawings.map(d=>(
+                <figure key={d.username}
+                  onClick={()=>setSelected(d.username)}
                   style={{
                     cursor:'pointer',
                     border: selected===d.username ? '3px solid green' : '1px solid #ccc',
@@ -201,46 +223,42 @@ export default function App() {
                   }}
                 >
                   <small>By {d.username}</small>
-                  <Canvas strokes={d.strokes} readOnly />
+                  <Canvas strokes={d.strokes} readOnly/>
                 </figure>
               ))}
             </div>
-            <button onClick={castVote} disabled={!selected}>
-              Vote for {selected || '...'}
+            <button
+              onClick={castVote}
+              disabled={!selected}
+              className="bg-blue-600 text-white py-2 px-4 rounded"
+            >
+              Vote for {selected||'...'}
             </button>
           </>
         )}
 
         {/* Results */}
-        {stage === 'results' && (
+        {stage==='results' && (
           <>
             <h1>Results</h1>
             <ol>
               {Object.entries(tally)
-                .sort((a,b) => b[1] - a[1])
-                .map(([u,v]) => <li key={u}>{u}: {v} votes</li>)}
+                .sort((a,b)=>b[1]-a[1])
+                .map(([u,v])=> <li key={u}>{u}: {v} votes</li>)}
             </ol>
-            <button onClick={resetGame}>Back to Lobby</button>
+            <button
+              onClick={resetGame}
+              className="bg-gray-600 text-white py-2 px-4 rounded"
+            >
+              Back to Lobby
+            </button>
           </>
         )}
       </section>
 
       <aside className="w-1/3 p-4">
-        <Chat socket={socketRef.current} roomId={roomId} username={username} />
+        <Chat socket={socketRef.current} roomId={roomId} username={username}/>
       </aside>
-    </div>
-  )
-}
-
-// Helper for adding prompts
-function PromptInput({ onAdd }) {
-  const ref = useRef()
-  return (
-    <div className="mb-4">
-      <input ref={ref} placeholder="New prompt…" />
-      <button onClick={() => { onAdd(ref.current.value); ref.current.value = '' }}>
-        Add
-      </button>
     </div>
   )
 }
