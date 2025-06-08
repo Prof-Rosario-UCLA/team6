@@ -1,0 +1,26 @@
+html, body, #root {
+  margin: 0;
+  height: 100%;
+}
+body {
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+button {
+  cursor: pointer;
+}
+section {
+  padding: 1rem;
+  flex: 1;
+}
+.flex {
+  display: flex;
+}
+.w-2_3 { width: 66.666%; }
+.w_1_3 { width: 33.333%; }
+.border { border: 1px solid #ccc; }
+.mb_4 { margin-bottom: 1rem; }
+.p_2 { padding: 0.5rem; }
+.p_4 { padding: 1rem; }
+

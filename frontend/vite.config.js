@@ -5,7 +5,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://localhost:1919'
+      '/api': 'http://localhost:1919',
+      '/socket.io': {
+        target: 'ws://localhost:1919',
+        ws: true
+      }
     }
   }
 })
