@@ -1,10 +1,9 @@
-
 // TODO:
 // DB and caching code, right now everything is stored locally
 // LATER, rename file from gameState.js to service.js, since
 // it is doing more than just game logic
 
-
+import { fetchHistoryFromCache, cacheHistory } from './cache.js';
 
 const rooms = new Map();
 
@@ -100,15 +99,21 @@ function addVote(roomId, voter, votedFor) {
 // Resets the current game phase and data for a new round.
 // right now EVERYTHING is stored locally. ideally, everything is stored
 //  in postgres, and the latest round is cached
-function resetRound(roomId) {
+async function resetRound(roomId) {
   const room = rooms.get(roomId);
   if(room) {
     // Save history
-    room.history.push({
+    const history = await fetchHistoryFromCache(roomId) || [];
+
+    // room.history.push({
+    history.push({
       prompt: room.currentPrompt,
       drawings: getAllDrawings(roomId),
       votes: Object.fromEntries(room.votes),
     });
+
+    // Cache the history
+    await cacheHistory(roomId, history);
 
     // Reset for next round
     room.currentPrompt = null;
@@ -133,8 +138,9 @@ function getPhase(roomId) {
 
 
 //gets previous rounds histroy
-function getHistory(roomId) {
-  return rooms.get(roomId)?.history || [];
+async function getHistory(roomId) {
+  const history = await await fetchHistoryFromCache(roomId);
+  return history || [];
 }
 
 function registerVote(roomId, voter, votedFor){
