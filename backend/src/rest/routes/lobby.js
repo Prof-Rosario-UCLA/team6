@@ -3,16 +3,17 @@ import gameState from '../../services/gameState.js';
 const router = express.Router();
 
 // POST /api/lobby/history/:roomId (@ frontend get from this route)
-router.get('/history/:roomId', (req, res) => {
+// if room not in cache found, return empty array
+router.get('/history/:roomId', async (req, res) => {
   const roomId = req.params.roomId;
   const room = gameState.getRoom(roomId);
 
-  if (!room) {
-    return res.status(400).json({ error: 'Room not found' });
-  }
+  // if (!room) {
+  //   return res.status(400).json({ error: 'Room not found' });
+  // }
 
-  // TODO: getHistory fucntion in gameState
-  res.json({ history: room.history });
+  const history = await gameState.getHistory(roomId);
+  res.json({ history:history });
 });
 
 // POST /api/lobby/prompts (@ frontend post to this route)
