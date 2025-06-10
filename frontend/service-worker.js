@@ -5,7 +5,7 @@ const URLS_TO_CACHE = [
   '/src/main.jsx',
   '/src/index.css',
   '/manifest.json'
-  // add additional static assets here, e.g. '/icons/icon-192.png'
+  // add other static assets here, e.g. '/icons/icon-192.png'
 ];
 
 self.addEventListener('install', event => {
@@ -17,7 +17,6 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  // Clean up old caches if needed
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
@@ -30,10 +29,15 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  const url = event.request.url;
+  // Bypass the SW for any socket.io requests
+  if (url.includes('/socket.io/')) {
+    return event.respondWith(fetch(event.request));
+  }
+  // Otherwise, respond from cache or network
   event.respondWith(
     caches.match(event.request).then(response =>
       response || fetch(event.request)
     )
   );
 });
-
