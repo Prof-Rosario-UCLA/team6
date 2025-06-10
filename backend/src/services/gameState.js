@@ -138,13 +138,21 @@ function getHistory(roomId) {
 }
 
 function registerVote(roomId, voter, votedFor){
+  console.log("enter registervote")
     const room = rooms.get(roomId);
     if (!room || room.phase !== 'voting') return false;
+    console.log("room exists and voting phase")
 
+    console.log(room.players)
+    console.log(voter)
+    console.log(votedFor)
     if (!room.players.includes(votedFor)) return false;
+    console.log("voteee ecists")
     if (voter === votedFor) return false;
+    console.log("not same vote")
 
     if (room.votes.has(voter)) return false; 
+    console.log("hasnt already voted")
     
     room.votes.set(voter, votedFor);
     return true;

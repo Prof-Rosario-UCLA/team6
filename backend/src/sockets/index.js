@@ -1,10 +1,18 @@
 import gameState from '../services/gameState.js'
+import jwt from 'jsonwebtoken';
+const SECRET = 'cs144secretkey';
+
 
 export default function registerSocketHandlers(io) {
   io.on('connection', (socket) => {
     console.log(`Connected: ${socket.id}`);
 
     socket.on('joinRoom', ({ roomId, username }) => {
+
+      if (!roomId || !username) {
+        socket.emit('authError', { message: 'missing roomId or username' });
+        return;
+      }
       socket.data.username = username;
       socket.data.room = roomId;
       
@@ -40,7 +48,11 @@ export default function registerSocketHandlers(io) {
         console.log(`${username} created room ${roomId}`);
 
       }
+
       socket.join(roomId);
+
+      const token = jwt.sign({ username, roomId }, SECRET, { expiresIn: '2h' });
+      socket.emit('authSuccess', { token });
 
       // emit that a user has just joined the room
       socket.to(roomId).emit('userJoined', { username });
@@ -194,6 +206,13 @@ export default function registerSocketHandlers(io) {
         // emit that drawing phase had ended after timer runs out
         io.to(roomId).emit('drawingEnded');
 
+
+        // immediately broadcast everyone's strokes to all clients
+    io.to(roomId).emit(
+      'syncDrawings',
+      gameState.getAllDrawings(roomId)
+    );
+
         // start voting phase and timer
         gameState.setPhase(roomId, 'voting');
 
@@ -205,14 +224,37 @@ export default function registerSocketHandlers(io) {
 
     });
 
-    socket.on('vote', ({ roomId, votedFor }) => {
+    socket.on('vote', ({token, roomId, votedFor }) => {
       const username = socket.data.username;
+      console.log("incoming vote")
+
+      let payload;
+      try {
+        payload = jwt.verify(token, SECRET);
+      } catch (err) {
+        socket.emit('error', { message: 'Invalid token' });
+        return;
+      }
+      const { user, roomId: tokenRoomId} = payload;
+
+      if (tokenRoomId !== roomId) {
+        socket.emit('error', { message: 'roomId mismatch in token' });
+        console.log('roomID mismatch in token');
+        return;
+      }
+
+      console.log(username);
+      console.log(roomId);
+      console.log(tokenRoomId)
 
       const success = gameState.registerVote(roomId, username, votedFor);
       if (!success) {
         socket.emit('error', { message: 'invalid vote. remember, you can only vote once and not for yourself' });
+        console.log('invalid vote');
         return;
       }
+
+      
 
       const room = gameState.getRoom(roomId);
       console.log(`${username} voted for ${votedFor} in room ${roomId}`);
@@ -281,5 +323,3 @@ export default function registerSocketHandlers(io) {
   }
 
 }
-
-
