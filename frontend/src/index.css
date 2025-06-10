@@ -1,26 +1,32 @@
+/* Prevent page scrolling */
 html, body, #root {
   margin: 0;
   height: 100%;
+  overflow: hidden;
 }
+
+/* Utility for two‐column → one‐column on narrow screens */
+.grid-cols-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+@media (max-width: 640px) {
+  .grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Focus outlines for accessibility */
+:focus {
+  outline: 3px solid #1e90ff;
+  outline-offset: 2px;
+}
+
+/* Simple reset */
 body {
   font-family: sans-serif;
-  display: flex;
-  flex-direction: column;
 }
 button {
   cursor: pointer;
 }
-section {
-  padding: 1rem;
-  flex: 1;
-}
-.flex {
-  display: flex;
-}
-.w-2_3 { width: 66.666%; }
-.w_1_3 { width: 33.333%; }
-.border { border: 1px solid #ccc; }
-.mb_4 { margin-bottom: 1rem; }
-.p_2 { padding: 0.5rem; }
-.p_4 { padding: 1rem; }
-
