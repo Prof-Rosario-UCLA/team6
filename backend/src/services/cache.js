@@ -25,8 +25,8 @@ async function getRedisClient() {
 
 // Implement a function to fetch JSON objects from Redis cache
 /**
- * @param {string} type - The type of data to fetch (e.g., 'lift', 'trail')
- * @returns {Promise<Object|Array|null>} The cached data or null if not found
+ * @param {string} roomId - The room ID to fetch history for
+ * @returns {Promise<Array|null>} The cached history or null if not found
  */
 export async function fetchHistoryFromCache(roomId) {
   const key = `${roomId}`;
@@ -35,11 +35,7 @@ export async function fetchHistoryFromCache(roomId) {
     // Get the Redis client
     const client = await getRedisClient();
   
-    console.log(`Attempting to fetch history of room ${key} from cache`);
-    // Create a client.
-    // Test whether or not the key is in the cache.
-    // If it is, return the data.
-    console.log("Fetching data from Redis cache");
+    console.log(`Attempting to fetch history of room ${roomId} from cache`);
     const value = await client.get(key);
     const data = JSON.parse(value);
     // console.log(data);

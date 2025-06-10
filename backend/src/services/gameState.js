@@ -4,6 +4,7 @@
 // it is doing more than just game logic
 
 import { fetchHistoryFromCache, cacheHistory } from './cache.js';
+import { getHistoryFromDB, addHistoryToDB } from './db.js';
 
 const rooms = new Map();
 
@@ -114,6 +115,7 @@ async function resetRound(roomId) {
 
     // Cache the history
     await cacheHistory(roomId, history);
+    await addHistoryToDB(roomId, history);
 
     // Reset for next round
     room.currentPrompt = null;
@@ -139,8 +141,19 @@ function getPhase(roomId) {
 
 //gets previous rounds histroy
 async function getHistory(roomId) {
-  const history = await await fetchHistoryFromCache(roomId);
-  return history || [];
+  try{
+    let history = await await fetchHistoryFromCache(roomId);
+    if (history !== null){
+      return history;
+    }
+    history = await getHistoryFromDB(roomId);
+    await cacheHistory(roomId, history);
+    return history;
+  }
+  catch (error) {
+    console.error('Error getting history:', error);
+    return [];
+  }
 }
 
 function registerVote(roomId, voter, votedFor){
