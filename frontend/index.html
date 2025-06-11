@@ -1,35 +1,14 @@
+<!-- frontend/index.html -->
 <!DOCTYPE html>
-<html lang="en" aria-labelledby="app-title">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#ffffff" />
-  <title id="app-title">Draw & Vote Game</title>
-</head>
-<body>
-  <!-- Cookie consent banner -->
-  <div id="cookie-banner" role="dialog" aria-live="polite" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#333;color:#fff;padding:1rem;text-align:center;z-index:1000;">
-    This app uses cookies for auth and offline support. 
-    <button id="accept-cookies" style="margin-left:1rem;padding:0.5rem;">Accept</button>
-  </div>
-
-  <div id="root" style="height:100vh;display:flex;flex-direction:column;overflow:hidden;"></div>
-  <script type="module" src="/src/main.jsx"></script>
-  <script>
-    // Cookie consent
-    if (!document.cookie.includes('cookie_consent=1')) {
-      const b = document.getElementById('cookie-banner')
-      b.style.display = 'block'
-      document.getElementById('accept-cookies').onclick = () => {
-        document.cookie = 'cookie_consent=1;path=/;max-age=31536000;SameSite=Strict'
-        b.style.display = 'none'
-      }
-    }
-    // Register service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js')
-    }
-  </script>
-</body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Draw & Vote Game</title>
+    <link rel="stylesheet" href="/src/index.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- this slash means “from the root served by Vite” -->
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
