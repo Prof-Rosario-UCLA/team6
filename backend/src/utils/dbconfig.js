@@ -3,25 +3,29 @@ import mongoose from 'mongoose';
 import { createClient } from 'redis';
 
 // Database configuration
-export const DB_NAME = 'mammothdb';
-export const COLLECTION = 'mammoth';
+export const DB_NAME = 'cs144db';
 export const MONGO_PORT = '27017';
-export const DEBUG = true;
+export const DEBUG = false;
 
-const PROTOCOL = 'mongodb://';
-const MONGO_USER = '';
-const MONGO_PASS = '';
-const mongoHost = DEBUG ? 'localhost' : 'cs144.org';
+// const PROTOCOL = 'mongodb://';
+// const MONGO_USER = '';
+// const MONGO_PASS = '';
+// const mongoHost = DEBUG ? 'localhost' : 'cs144.org';
 
-const mongoLogin = MONGO_USER && MONGO_PASS ? `${MONGO_USER}:${MONGO_PASS}` : '';
-const mongoHostPort = MONGO_PORT ? `${mongoHost}:${MONGO_PORT}/${DB_NAME}` : `${mongoHost}/${DB_NAME}`;
+// const mongoLogin = MONGO_USER && MONGO_PASS ? `${MONGO_USER}:${MONGO_PASS}` : '';
+// const mongoHostPort = MONGO_PORT ? `${mongoHost}:${MONGO_PORT}/${DB_NAME}` : `${mongoHost}/${DB_NAME}`;
 
-export const mongoUri = DEBUG
-  ? `${PROTOCOL}${mongoHostPort}`
-  : `${PROTOCOL}${mongoLogin ? `${mongoLogin}@` : ''}${mongoHostPort}`;
+// export const mongoUri = DEBUG
+//   ? `${PROTOCOL}${mongoHostPort}`
+//   : `${PROTOCOL}${mongoLogin ? `${mongoLogin}@` : ''}${mongoHostPort}`;
+
+const ATLAS_URI = 'mongodb+srv://team6:kkT87Ci7OCel04FN@cluster0.tmxym8u.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const localUri = 'mongodb://localhost:27017/cs144db';
+
+export const mongoUri = DEBUG ? localUri : ATLAS_URI;
 
 // Redis configuration
-export const REDIS_PREFIX = 'mammoth:';
+export const REDIS_PREFIX = 'cs144db:';
 export const redisOptions = {
   socket: {
     host: 'localhost', // Redis server hostname
@@ -35,6 +39,7 @@ export const redisClient = createClient(redisOptions);
 // Connect to MongoDB
 export const connectToMongoDB = async () => {
   try {
+    console.log(mongoUri);
     await mongoose.connect(mongoUri);
     console.log('Connected to MongoDB');
     return true;
