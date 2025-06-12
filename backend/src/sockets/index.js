@@ -5,6 +5,7 @@ export default function registerSocketHandlers(io) {
     console.log(`Connected: ${socket.id}`);
 
     socket.on('joinRoom', ({ roomId, username }) => {
+      console.log("ENTERED JOIN ROOM");
       socket.data.username = username;
       socket.data.room = roomId;
       
