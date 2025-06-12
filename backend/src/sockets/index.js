@@ -9,10 +9,14 @@ export default function registerSocketHandlers(io) {
 
     socket.on('joinRoom', ({ roomId, username }) => {
 
+      console.log("ENTERED JOIN ROOM");
+
+
       if (!roomId || !username) {
         socket.emit('authError', { message: 'missing roomId or username' });
         return;
       }
+
       socket.data.username = username;
       socket.data.room = roomId;
       
