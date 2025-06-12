@@ -3,7 +3,7 @@ DrawTogether
 
 
 ## REST/API:
-
+```
 GET /api/lobby/history/:roomId
 params: roomId (string)
 
@@ -12,7 +12,7 @@ request body:
 roomId (string)
 prompts (string)
 username (string)
-
+```
 ## How to deploy
 First, the certificate should be set up via 
 ```
