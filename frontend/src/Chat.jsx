@@ -34,10 +34,10 @@ export default function Chat({ socket, roomId, username }) {
     const text = input.trim()
     if (!text) return
 
-    // 1) echo locally
+    
     setMsgs(m => [...m, { from: username, message: text }])
 
-    // 2) broadcast
+   
     socket.emit('chatMessage', { roomId, username, message: text })
 
     setInput('')
